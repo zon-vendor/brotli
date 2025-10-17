@@ -11,9 +11,29 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         .link_libc = true,
     }, linkage);
-    b.installArtifact(brotli_builder.addLibrary(.common));
-    b.installArtifact(brotli_builder.addLibrary(.dec));
-    b.installArtifact(brotli_builder.addLibrary(.enc));
+
+    const brotli_common_lib = brotli_builder.addLibrary(.common);
+    const brotli_dec_lib = brotli_builder.addLibrary(.dec);
+    const brotli_enc_lib = brotli_builder.addLibrary(.enc);
+
+    b.installArtifact(brotli_common_lib);
+    b.installArtifact(brotli_dec_lib);
+    b.installArtifact(brotli_enc_lib);
+
+    const brotli_exe = b.addExecutable(.{
+        .name = "brotli",
+        .root_module = b.createModule(.{
+            .target = target,
+            .optimize = optimize,
+            .link_libc = true,
+        }),
+        .version = std.SemanticVersion.parse(zon.version) catch unreachable,
+    });
+    brotli_exe.addCSourceFile(.{ .file = brotli_dep.path("c/tools/brotli.c") });
+    brotli_exe.linkLibrary(brotli_common_lib);
+    brotli_exe.linkLibrary(brotli_dec_lib);
+    brotli_exe.linkLibrary(brotli_enc_lib);
+    b.installArtifact(brotli_exe);
 }
 
 const BrotliBuilder = struct {
